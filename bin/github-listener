@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+
+# (c) 2016 - onwards Georgios Gousios <gousiosg@gmail.com>
+#
+# MIT licensed, see LICENSE in top level dir
+#
+# Minimal GitHub webhook for use with GHTorrent.
+
+require 'sinatra'
+require 'bunny'
+require 'mongo'
+require 'yaml'
+require 'json'
+require 'openssl'
+require 'json'
+require 'thread'
+
+set :port, 5678
+
+get '/' do
+  "ght-web-hook: use POST instead\n"
+end
+  
+post '/' do
+  #Verify the signature
+  request.body.rewind
+  payload_body = request.body.read
+  if verify_signature(payload_body)
+    puts "verified\r\n"
+
+    if request.env['HTTP_X_GITHUB_EVENT'] == 'push'
+      puts "Received push event. Pulling"
+      `git pull`
+    else
+      puts "Received non-push event. Ignoring"
+    end
+  else
+    print "Could not verify\r\n"
+    halt 500
+  end
+end
+
+def verify_signature(payload_body)
+  signature = 'sha1=' + OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), ENV['SECRET_KEY_GITHUB'], payload_body)
+
+  if Rack::Utils.secure_compare(signature, request.env['HTTP_X_HUB_SIGNATURE'])
+    return true
+  else
+    return false
+  end
+end
+

@@ -1,0 +1,101 @@
+#!/bin/sh
+#
+# Create the periodic database dump files
+#
+
+#set environment variables
+cd /home/ospo/github-mirror
+
+# Directory to place compressed files and torrents
+OUTDIR=/data/msght_dumps/data_dump
+
+usage()
+{
+	echo "Usage: $0 [-f 'yyyy-mm-dd hh:mm'] [-t 'yyyy-mm-dd hh:mm']"
+	echo "          [-c collection_to_dump]"
+	echo "Dump the database. -f earliest record timestamp"
+	echo "                   -t latest record timestamp"
+	echo "                   -c collection to dump (default: all)"
+}
+
+if [ -z $1 ]
+then
+	usage
+	exit 1
+fi
+
+while getopts "f:t:c:" o
+do
+	case $o in
+	f) 	timeStart=`date -d "$OPTARG" +%s` ;;
+	t) 	timeEnd=`date -d "$OPTARG" +%s` ;;
+	c) 	collection=$OPTARG ;;
+	\?)     echo "Invalid option: -$OPTARG" >&2
+		usage
+	        exit 1
+		;;
+	esac
+done
+
+echo "time start: `date -d @$timeStart`"
+echo "time end: `date -d @$timeEnd`"
+
+# Name used for the files
+dateName=`date -d @$timeEnd -u +'%Y-%m-%d'`
+
+# _id example:
+# 4f208c3e08d69a1835000077
+# 000102030405060708091011
+# |      ||    ||  ||    |
+# time    mach  pid count
+
+endId=`printf '%08x0000000000000000' $timeEnd`
+startId=`printf '%08x0000000000000000' $timeStart`
+
+
+if [ -z $collection ]
+then
+	collections=`echo "show collections"|mongo --quiet localhost/github|egrep -v "system|bye"`
+else
+	collections=$collection
+fi
+
+echo "Dumping database from `date -d @$timeStart` to `date -d @$timeEnd`"
+
+rm -rf dump
+mkdir -p dump/github
+
+for col in $collections; do
+
+	echo "Dumping $col"
+	mongodump --host localhost --db github --collection $col -q '{"_id" : {"$gte" : ObjectId("'$startId'"), "$lt"  : ObjectId("'$endId'")} }' || exit 1
+done
+
+# Archive collections and create torrents 
+for col in $collections; do
+	echo "Archiving $col.bson"
+	if [ ! -s dump/github/$col.bson ]; then
+		echo "Collection empty, skipping"
+		continue
+	fi
+
+	if ! tar zcf $OUTDIR/$col-dump.$dateName.tar.gz dump/github/$col.bson
+	then
+	   rm -f $OUTDIR/$col-dump.$dateName.tar.gz
+	   exit 1
+	fi
+done
+
+echo "Creating final .tar.gz"
+tar zcf mongo-dump-$dateName.tar.gz dump
+
+echo $dateName 23:59 >lastrun || exit 1
+
+#Add blob to azure!
+echo "Adding blob to azure"
+node /home/ospo/github-mirror/dumps/AddBlob.js mongo-dump-$dateName.tar.gz downloads/mongo-dump-$dateName.tar.gz
+
+# Clean up
+rm -rf dump
+cd /data/msght_dumps/data_dump
+rm *.tar.gz
