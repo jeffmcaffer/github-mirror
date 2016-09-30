@@ -153,6 +153,29 @@ module GHTorrent
       persister.find(:followers, {'login' => user})
     end
 
+    def retrieve_pull_request_commit(pr_obj, repo, sha, user)
+      pull_commit = persister.find(:pull_request_commits, {'sha' => "#{sha}"})
+
+      if pull_commit.empty?
+        commit = retrieve_commit(repo, sha, user)
+
+        unless commit.nil?
+          commit.delete(nil)
+          commit.delete(:_id)
+          commit.delete('_id')
+          commit['pull_request_id'] = pr_obj[:id]
+          persister.store(:pull_request_commits, commit)
+          info "Added commit #{user}/#{repo} -> #{sha} with pull_id #{pr_obj['id']}"
+          commit
+        else
+          return
+        end
+      else
+        debug "Pull request commit #{user}/#{repo} -> #{sha} exists for pull id #{pr_obj['id']}"
+        pull_commit.first
+      end
+    end
+
     # Retrieve a single commit from a repo
     def retrieve_commit(repo, sha, user)
       commit = persister.find(:commits, {'sha' => "#{sha}"})
@@ -428,6 +451,15 @@ module GHTorrent
                       'number')
     end
 
+    def retrieve_issue_webhook(user, repo, issue_id)
+      open = "repos/#{user}/#{repo}/issues"
+      closed = "repos/#{user}/#{repo}/issues?state=closed"
+      repo_bound_item_webhook(user, repo, issue_id, :issues,
+                      [open, closed],
+                      {'repo' => repo, 'owner' => user},
+                      'number')
+    end
+
     def retrieve_issue_events(owner, repo, issue_id)
       url = ghurl "repos/#{owner}/#{repo}/issues/#{issue_id}/events"
       retrieved_events = paged_api_request url
@@ -577,24 +609,6 @@ module GHTorrent
       persister.find(:events, {'id' => id})
     end
 
-    # Retrieve diff between two branches. If either branch name is not provided
-    # the branch name is resolved to the corresponding default branch
-    def retrieve_master_branch_diff(owner, repo, branch, parent_owner, parent_repo, parent_branch)
-      branch   = retrieve_default_branch(owner, repo) if branch.nil?
-      parent_branch = retrieve_default_branch(parent_owner, parent_repo) if parent_branch.nil?
-
-      cmp_url = "https://api.github.com/repos/#{parent_owner}/#{parent_repo}/compare/#{parent_branch}...#{owner}:#{branch}"
-      api_request(cmp_url)
-    end
-
-    # Retrieve the default branch for a repo. If nothing is retrieve, 'master' is returned
-    def retrieve_default_branch(owner, repo)
-      retrieved = retrieve_repo(owner, repo)
-      master_branch = 'master'
-      master_branch = retrieved['default_branch'] unless retrieved.nil?
-      master_branch
-    end
-
     private
 
     def restricted_page_request(url, pages)
@@ -606,7 +620,7 @@ module GHTorrent
     end
 
     def repo_bound_items(user, repo, entity, urls, selector, discriminator,
-        item_id = nil, refresh = false, order = :asc, media_type = '')
+        item_id = nil, refresh = false, order = :asc)
 
        urls.each do |url|
         total_pages = num_pages(ghurl url)
@@ -618,7 +632,7 @@ module GHTorrent
                      end
 
         page_range.each do |page|
-          items = api_request(ghurl(url, page), media_type)
+          items = api_request(ghurl(url, page))
 
           items.each do |x|
             x['repo'] = repo
@@ -629,7 +643,7 @@ module GHTorrent
             exists = !instances.empty?
 
             unless exists
-              x = api_request(x['url'], media_type)
+              x = api_request(x['url'])
               x['repo'] = repo
               x['owner'] = user
               persister.store(entity, x)
@@ -677,13 +691,70 @@ module GHTorrent
       end
     end
 
+    def repo_bound_items_webhook(user, repo, entity, urls, selector, discriminator,
+        item_id = nil, refresh = false, order = :asc)
+
+       urls.each do |url|
+        total_pages = num_pages(ghurl url)
+
+        page_range = if order == :asc
+                       (1..total_pages)
+                     else
+                       total_pages.downto(1)
+                     end
+
+        page_range.each do |page|
+          items = api_request(ghurl(url, page))
+
+          items.each do |x|
+            x['repo'] = repo
+            x['owner'] = user
+
+            if x[discriminator] == item_id
+              x = api_request(x['url'])
+              x['repo'] = repo
+              x['owner'] = user
+              persister.store(entity, x)
+              info "Added #{entity} #{user}/#{repo} -> #{x[discriminator]}"
+              return [x]
+            end
+          end
+        end
+      end
+
+      if item_id.nil?
+        persister.find(entity, selector)
+      else
+        # If the item we are looking for has been found, the method should
+        # have returned earlier. So just return an empty result to indicate
+        # that the item has not been found.
+        []
+      end
+    end
+
     def repo_bound_item(user, repo, item_id, entity, url, selector,
-                        discriminator, order = :asc, media_type = '')
+                        discriminator, order = :asc)
       stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
 
       r = if stored_item.empty?
             repo_bound_items(user, repo, entity, url, selector, discriminator,
-                             item_id, false, order, media_type).first
+                             item_id, false, order).first
+          else
+            stored_item.first
+          end
+      if r.nil?
+        warn "Could not find #{entity} #{user}/#{repo} -> #{item_id}. Deleted?"
+      end
+      r
+    end
+
+    def repo_bound_item_webhook(user, repo, item_id, entity, url, selector,
+                        discriminator, order = :asc)
+      stored_item = repo_bound_instance(entity, selector, discriminator, item_id)
+
+      r = if stored_item.empty?
+            repo_bound_items_webhook(user, repo, entity, url, selector, discriminator,
+                             item_id, false, order).first
           else
             stored_item.first
           end

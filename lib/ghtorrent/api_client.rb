@@ -48,9 +48,9 @@ module GHTorrent
 
 
     # A normal request. Returns a hash or an array of hashes representing the
-    # parsed JSON result. The media type
-    def api_request(url, media_type = '')
-      parse_request_result api_request_raw(ensure_max_per_page(url), media_type)
+    # parsed JSON result.
+    def api_request(url)
+      parse_request_result api_request_raw(ensure_max_per_page(url))
     end
 
     # Determine the number of pages contained in a multi-page API response
@@ -142,12 +142,12 @@ module GHTorrent
     end
 
     # Do the actual request and return the result object
-    def api_request_raw(url, media_type = '')
+    def api_request_raw(url)
 
       begin
         start_time = Time.now
 
-        contents = do_request(url, media_type)
+        contents = do_request(url)
         total = Time.now.to_ms - start_time.to_ms
         info "Successful request. URL: #{url}, Remaining: #{@remaining}, Total: #{total} ms"
 
@@ -181,7 +181,7 @@ module GHTorrent
         raise e
       ensure
         # The exact limit is only enforced upon the first @reset
-        if 5000 - @remaining >= @req_limit
+        if (65000 - @remaining >= @req_limit && @remaining > 5000) || @remaining <= 850
           to_sleep = @reset - Time.now.to_i + 2
           debug "Request limit reached, sleeping for #{to_sleep} secs"
           t = Thread.new do
@@ -203,7 +203,7 @@ module GHTorrent
       return :none
     end
 
-    def do_request(url, media_type)
+    def do_request(url)
       @attach_ip  ||= config(:attach_ip)
       @token      ||= config(:github_token)
       @user_agent ||= config(:user_agent)
@@ -211,18 +211,15 @@ module GHTorrent
       @reset      ||= Time.now.to_i + 3600
       @auth_type  ||= auth_method(@token)
       @req_limit  ||= config(:req_limit)
-      media_type = 'application/json' unless media_type.size > 0
 
       open_func ||=
           case @auth_type
             when :none
-              lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                      'Accept' => media_type)}
+              lambda {|url| open(url, 'User-Agent' => @user_agent)}
             when :token
               # As per: https://developer.github.com/v3/auth/#via-oauth-tokens
               lambda {|url| open(url, 'User-Agent' => @user_agent,
-                                      'Authorization' => "token #{@token}",
-                                      'Accept' => media_type)}
+                                 'Authorization' => "token #{@token}") }
           end
 
       result = if @attach_ip.nil? or @attach_ip.eql? '0.0.0.0'

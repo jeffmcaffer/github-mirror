@@ -85,19 +85,8 @@ module GHTorrent
     #         starts from what the project considers as master branch.
     # [return_retrieved] Should retrieved commits be returned? If not, memory is
     #                    saved while processing them.
-    # [pages] Number of commits to retrieve. A negative number means retrieve all
-    def ensure_commits(user, repo, sha = nil, return_retrieved = false, num_commits = -1)
+    def ensure_commits(user, repo, sha = nil, return_retrieved = false)
 
-      currepo = ensure_repo(user, repo)
-      unless currepo[:forked_from].nil?
-        r            = retrieve_repo(user, repo)
-        parent_owner = r['parent']['owner']['login']
-        parent_repo  = r['parent']['name']
-        ensure_fork_commits(user, repo, parent_owner, parent_repo)
-        return
-      end
-
-      num_retrieved = 0
       commits = ['foo'] # Dummy entry for simplifying the loop below
       commit_acc = []
       until commits.empty?
@@ -118,14 +107,9 @@ module GHTorrent
           commit_acc = commit_acc << retrieved
         end
 
-        num_retrieved += retrieved.size
-        if num_commits > 0 and num_retrieved >= num_commits
-          break
-        end
-
       end
 
-      commit_acc.flatten.select{|x| !x.nil?}
+      commit_acc.select{|x| !x.nil?}
     end
 
     ##
@@ -220,66 +204,58 @@ module GHTorrent
       # with any account in Github.
       login = githubuser['login'] unless githubuser.nil?
 
-      # web-flow is a special user reserved for web-based commits:
-      # https://api.github.com/users/web-flow
-      # We do not follow the process below as this user's email
-      # (noreply@github.com) clashes other existing users' emails.
-      if login == 'web-flow'
-        return ensure_user_byuname('web-flow')
-      end
-
-      return ensure_user("#{name}<#{email}>", false, false) if login.nil?
-
-      dbuser = users.first(:login => login)
-      byemail = users.first(:email => email)
-
-      if dbuser.nil?
-        # We do not have the user in the database yet
-        added = ensure_user(login, false, false)
-
-        # A commit user can be found by email but not
-        # by the user name he used to commit. This probably means that the
-        # user has probably changed his user name. Treat the user's by-email
-        # description as valid.
-        if added.nil? and not byemail.nil?
-          warn "Found user #{byemail[:login]} with same email #{email} as non existing user #{login}. Assigning user #{login} to #{byemail[:login]}"
-          return users.first(:login => byemail[:login])
-        end
-
-        # This means that the user's login has been associated with a
-        # Github user by the time the commit was done (and hence Github was
-        # able to associate the commit to an account), but afterwards the
-        # user has deleted his account (before GHTorrent processed it).
-        # On absense of something better to do, try to find the user by email
-        # and return a "fake" user entry.
-        if added.nil?
-          warn "User account for user #{login} deleted from Github"
-          return ensure_user("#{name}<#{email}>", false, false)
-        end
-
-        if byemail.nil?
-          users.filter(:login => login).update(:name => name) if added[:name].nil?
-          users.filter(:login => login).update(:email => email) if added[:email].nil?
-        else
-          # There is a previous entry for the user, currently identified by
-          # email. This means that the user has updated his account and now
-          # Github is able to associate his commits with his git credentials.
-          # As the previous entry might have already associated records, just
-          # delete the new one and update the existing with any extra data.
-          users.filter(:login => login).delete
-          users.filter(:email => email).update(
-              :login => login,
-              :company => added['company'],
-              :location => added['location'],
-              :created_at => added['created_at']
-          )
-        end
+      if login.nil?
+        ensure_user("#{name}<#{email}>", false, false)
       else
-        users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
-        users.filter(:login => login).update(:email => email) if dbuser[:email].nil?
-      end
-      users.first(:login => login)
+        dbuser = users.first(:login => login)
+        byemail = users.first(:email => email)
+        if dbuser.nil?
+          # We do not have the user in the database yet. Add him
+          added = ensure_user(login, false, false)
 
+          # A commit user can be found by email but not
+          # by the user name he used to commit. This probably means that the
+          # user has probably changed his user name. Treat the user's by-email
+          # description as valid.
+          if added.nil? and not byemail.nil?
+            warn "Found user #{byemail[:login]} with same email #{email} as non existing user #{login}. Assigning user #{login} to #{byemail[:login]}"
+            return users.first(:login => byemail[:login])
+          end
+
+          # This means that the user's login has been associated with a
+          # Github user by the time the commit was done (and hence Github was
+          # able to associate the commit to an account), but afterwards the
+          # user has deleted his account (before GHTorrent processed it).
+          # On absense of something better to do, try to find the user by email
+          # and return a "fake" user entry.
+          if added.nil?
+            warn "User account for user #{login} deleted from Github"
+            return ensure_user("#{name}<#{email}>", false, false)
+          end
+
+          if byemail.nil?
+            users.filter(:login => login).update(:name => name) if added[:name].nil?
+            users.filter(:login => login).update(:email => email) if added[:email].nil?
+          else
+            # There is a previous entry for the user, currently identified by
+            # email. This means that the user has updated his account and now
+            # Github is able to associate his commits with his git credentials.
+            # As the previous entry might have already associated records, just
+            # delete the new one and update the existing with any extra data.
+            users.filter(:login => login).delete
+            users.filter(:email => email).update(
+                :login => login,
+                :company => added['company'],
+                :location => added['location'],
+                :created_at => added['created_at']
+            )
+          end
+        else
+          users.filter(:login => login).update(:name => name) if dbuser[:name].nil?
+          users.filter(:login => login).update(:email => email) if dbuser[:email].nil?
+        end
+        users.first(:login => login)
+      end
     end
 
     ##
@@ -585,21 +561,28 @@ module GHTorrent
         else
           repos.filter(:owner_id => curuser[:id], :name => repo).update(:forked_from => parent[:id])
           info "Repo #{user}/#{repo} is a fork of #{parent_owner}/#{parent_repo}"
-
-          forked_commit = ensure_fork_point(user, repo)
         end
       end
 
       info "Added repo #{user}/#{repo}"
 
-      ensure_repo_recursive(user, repo) if recursive
+      ensure_repo_recursive(owner, repo, !r['parent'].nil?) if recursive
 
       repos.first(:owner_id => curuser[:id], :name => repo)
     end
 
-    def ensure_repo_recursive(owner, repo)
+    def ensure_repo_recursive(owner, repo, is_fork)
 
-      functions = %w(ensure_commits ensure_labels ensure_pull_requests
+      if is_fork
+        r = retrieve_repo(owner, repo)
+        parent_owner = r['parent']['owner']['login']
+        parent_repo = r['parent']['name']
+        ensure_fork_commits(owner, repo, parent_owner, parent_repo)
+      else
+        ensure_commits(owner, repo)
+      end
+
+      functions = %w(ensure_labels ensure_pull_requests
        ensure_issues ensure_watchers ensure_forks ensure_languages)
 
       functions.each do |x|
@@ -646,157 +629,90 @@ module GHTorrent
       parent = ensure_repo(parent_owner, parent_repo)
 
       if parent.nil?
-        warn "Could not find repo #{parent_owner}/#{parent_repo}, parent of #{owner}/#{repo}"
+        warn "Could not find repo #{owner}/#{repo}, parent of #{owner}/#{repo}"
         return
       end
 
-      strategy = case
-                   when config(:fork_commits).match(/all/i)
-                     :all
-                   when config(:fork_commits).match(/fork_point/i)
-                     :fork_point
-                   when config(:fork_commits).match(/none/i)
-                     :none
-                   else
-                     :fork_point
-                 end
-
-      fork_commit = ensure_fork_point(owner, repo)
-
-      if fork_commit.nil? or fork_commit.empty?
-        warn "Cannot find fork commit for repo #{owner}/#{repo}. Retrieving all commits."
-        return ensure_commits(owner, repo)
+      watchdog = Thread.new do
+        slept = 0
+        while true do
+          debug "In ensure_fork_commits (#{owner}/#{repo} fork from #{parent_owner}/#{parent_repo}) for #{slept} seconds"
+          sleep 1
+          slept += 1
+        end
       end
+      begin
+        info "Retrieving commits for #{owner}/#{repo} until we reach a commit shared with the parent"
 
-      debug "Retrieving commits for fork #{owner}/#{repo}: strategy is #{strategy}"
-      return if strategy == :none
+        sha = nil
+      # Refresh the latest commits for the parent.
+        retrieve_commits(parent_repo, sha, parent_owner, 1).each do |c|
+          sha = c['sha']
+          ensure_commit(parent_repo, sha, parent_owner)
+        end
 
-      if strategy == :fork_point
-        # Retrieve commits up to fork point (fork_commit strategy)
-        info "Retrieving commits for #{owner}/#{repo} until fork commit #{fork_commit[:sha]}"
-        master_branch = retrieve_default_branch(parent_owner, parent_repo)
-
-        sha   = master_branch
+        sha = nil
         found = false
         while not found
+          processed = 0
           commits = retrieve_commits(repo, sha, owner, 1)
 
-          # This means we retrieved the last page again
+          # If only one commit has been retrieved (and this is the same as
+          # the commit since which we query commits from) this mean that
+          # there are no more commits.
           if commits.size == 1 and commits[0]['sha'] == sha
+            info "Could not find shared commit and no more commits for #{owner}/#{repo}"
             break
           end
 
           for c in commits
-            ensure_commit(repo, c['sha'], owner)
+            processed += 1
+            exists_in_parent =
+                !db.from(:project_commits, :commits).\
+                         where(:project_commits__commit_id => :commits__id).\
+                         where(:project_commits__project_id => parent[:id]).\
+                         where(:commits__sha => c['sha']).first.nil?
+
             sha = c['sha']
-            if c['sha'] == fork_commit[:sha]
+            if exists_in_parent
               found = true
+              info "Found commit #{sha} shared with parent, switching to copying commits"
               break
+            else
+              ensure_commit(repo, sha, owner)
             end
           end
+
+          if processed == 0
+            warn "Could not find commits for #{owner}/#{repo}, repo deleted?"
+            break
+          end
         end
-      end
 
-      if strategy == :all
-
-        shared_commit = db[:commits].first(:sha => fork_commit)
-        copied        = 0
-        to_copy = db.from(:project_commits, :commits).\
+        if found
+          shared_commit = db[:commits].first(:sha => sha)
+          copied = 0
+          db.from(:project_commits, :commits).\
                   where(:project_commits__commit_id => :commits__id).\
                   where(:project_commits__project_id => parent[:id]).\
                   where('commits.created_at < ?', shared_commit[:created_at]).\
-                  select(:commits__id)
-
-        to_copy.each do |c|
-          copied += 1
-          begin
-            db[:project_commits].insert(
-                :project_id => currepo[:id],
-                :commit_id  => c[:id]
-            )
-            debug "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
-          rescue StandardError => e
-            warn "Could not copy commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} : #{e.message}"
-          end
+                  select(:commits__id, :commits__sha).\
+              each do |c|
+                copied += 1
+                begin
+                  db[:project_commits].insert(
+                      :project_id => currepo[:id],
+                      :commit_id => c[:id]
+                  )
+                  info "Copied commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} (#{copied} total)"
+                rescue StandardError => e
+                  warn "Could not copy commit #{c[:sha]} #{parent_owner}/#{parent_repo} -> #{owner}/#{repo} : #{e.message}"
+                end
+              end
         end
-        info "Finished copying commits from #{parent_owner}/#{parent_repo} -> #{owner}/#{repo}: #{copied} total"
+      ensure
+        watchdog.exit
       end
-
-    end
-
-    # Retrieve and return the commit at which the provided fork was forked at
-    def ensure_fork_point(owner, repo)
-
-      fork = ensure_repo(owner, repo, false)
-
-      if fork[:forked_from].nil?
-        warn "Repo #{owner}/#{repo} is not a fork"
-        return nil
-      end
-
-      # Return commit if already specified
-      unless fork[:forked_commit_id].nil?
-        commit = db[:commits].where(:id => fork[:forked_commit_id]).first
-        return commit unless commit.nil?
-      end
-
-      parent = db.from(:projects, :users).\
-                where(:projects__owner_id => :users__id).\
-                where(:projects__id => fork[:forked_from]).\
-                select(:users__login, :projects__name).first
-
-      if parent.nil?
-        warn "Unknown parent for repo #{owner}/#{repo}"
-        return nil
-      end
-
-      default_branch = retrieve_default_branch(parent[:login], parent[:name])
-
-      # Retrieve diff between parent and fork master branch
-      diff = retrieve_master_branch_diff(owner, repo, default_branch, parent[:login], parent[:name], default_branch)
-      if diff.empty?
-        # This means that the are no common ancestors between the repos
-        # This can apparently happen when the parent repo was renamed or force-pushed
-        # example: https://github.com/openzipkin/zipkin/compare/master...aa1wi:master
-        warn "No common ancestor between #{parent[:login]}/#{parent[:name]} and #{owner}/#{repo}"
-        return nil
-      else
-        debug "Fork #{owner}/#{repo} is #{diff['ahead_by']} commits ahead and #{diff['behind_by']} commits behind #{parent[:login]}/#{parent[:name]}"
-      end
-
-      if diff['ahead_by'].to_i > 0
-        # This means that the fork has diverged, and we need to search through the fork
-        # commit graph for the earliest commit that is shared with the parent. GitHub's
-        # diff contains a list of divergent commits. We are sorting those by date
-        # and select the earliest one. We do date sort instead of graph walking as this
-        # would be prohibetively slow if the commits for the parent did not exist.
-        earliest_diverging = diff['commits'].sort_by{|x| x['commit']['author']['date']}.first
-
-        # Make sure that all likely fork points exist for the parent project
-        # and select the latest of them.
-        # https://github.com/gousiosg/github-mirror/compare/master...pombredanne:master
-        likely_fork_point = earliest_diverging['parents'].\
-            map{ |x| ensure_commit(parent[:name], x['sha'], parent[:login])}.\
-            select{|x| !x.nil?}.\
-            sort_by { |x| x[:created_at]}.\
-            last
-
-        forked_sha  = likely_fork_point[:sha]
-      else
-        # This means that the fork has not diverged.
-        forked_sha = diff['merge_base_commit']['sha']
-      end
-
-      forked_commit = ensure_commit(repo, forked_sha, owner);
-
-      debug "Fork commit for #{owner}/#{repo} is #{forked_sha}"
-
-      unless forked_commit.nil?
-        db[:projects].filter(:id => fork[:id]).update(:forked_commit_id => forked_commit[:id])
-        info "Repo #{owner}/#{repo} was forked at #{parent[:login]}/#{parent[:name]}:#{forked_sha}"
-      end
-
-      db[:commits].where(:sha => forked_sha).first
     end
 
     ##
@@ -1076,6 +992,7 @@ module GHTorrent
         warn "Could not find repo #{owner}/#{repo} for retrieving pull requests"
         return
       end
+      info "In ensure_pull_requests"
 
       raw_pull_reqs = if refresh
                         retrieve_pull_requests(owner, repo, refresh = true)
@@ -1264,7 +1181,7 @@ module GHTorrent
                                     'closed', closer) if (closed && state != 'closed')
         ensure_pull_request_history(pull_req[:id], date(created_at), state, actor) unless state.nil?
       end
-      ensure_pull_request_commits(owner, repo, pullreq_id, pull_req) if commits
+      ensure_pull_request_commits(owner, repo, pullreq_id, pull_req, retrieved) if commits
       ensure_pullreq_comments(owner, repo, pullreq_id, pull_req) if comments
       ensure_issue_comments(owner, repo, pullreq_id, pull_req[:id]) if comments
 
@@ -1344,7 +1261,7 @@ module GHTorrent
       end
     end
 
-    def ensure_pull_request_commits(owner, repo, pullreq_id, pr_obj)
+    def ensure_pull_request_commits(owner, repo, pullreq_id, pr_obj, retrieved_pull)
       pullreq = pr_obj
       pullreq = ensure_pull_request(owner, repo, pullreq_id, false, false, false) if pr_obj.nil?
 
@@ -1358,6 +1275,14 @@ module GHTorrent
         head_repo_owner = c['url'].split(/\//)[4]
         head_repo_name = c['url'].split(/\//)[5]
         x = ensure_commit(head_repo_name, c['sha'], head_repo_owner)
+
+        if config(:store_pull_request_commits) == true
+          pull_commit = retrieve_pull_request_commit(retrieved_pull, repo, c['sha'], owner)
+          if pull_commit.nil?
+            warn "Could not find pull request commit with sha -> #{c['sha']}"
+          end
+        end
+
         acc << x unless x.nil?
         acc
       }.map do |c|
@@ -1418,11 +1343,10 @@ module GHTorrent
         return
       end
 
-      fork_name = if fork['full_name'].nil? then fork['url'].split(/\//)[4..5].join('/') else fork['full_name'] end
-      fork_owner = fork_name.split(/\//)[0]
-      fork_name = fork_name.split(/\//)[1]
+      fork_owner = fork['full_name'].split(/\//)[0]
+      fork_name = fork['full_name'].split(/\//)[1]
 
-      r = ensure_repo(fork_owner, fork_name, true)
+      r = ensure_repo(fork_owner, fork_name)
 
       if r.nil?
         warn "Could not add #{fork_owner}/#{fork_name} as fork of #{owner}/#{repo}"
@@ -1475,6 +1399,68 @@ module GHTorrent
 
       retrieved = retrieve_issue(owner, repo, issue_id)
 
+      if retrieved.nil?
+        warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
+        return
+      end
+
+      # Pull requests and issues share the same issue_id
+      pull_req = unless retrieved['pull_request'].nil? or
+          retrieved['pull_request']['patch_url'].nil?
+                   debug "Issue #{owner}/#{repo}->#{issue_id} is a pull request"
+                   ensure_pull_request(owner, repo, issue_id, false, false, false)
+                 end
+
+      if cur_issue.nil?
+
+        reporter = ensure_user(retrieved['user']['login'], false, false)
+        assignee = unless retrieved['assignee'].nil?
+                     ensure_user(retrieved['assignee']['login'], false, false)
+                   end
+
+        issues.insert(:repo_id => repository[:id],
+                     :assignee_id => unless assignee.nil? then assignee[:id] end,
+                     :reporter_id => reporter[:id],
+                     :issue_id => issue_id,
+                     :pull_request => if pull_req.nil? then false else true end,
+                     :pull_request_id => unless pull_req.nil? then pull_req[:id] end,
+                     :created_at => date(retrieved['created_at']))
+
+        info "Added issue #{owner}/#{repo} -> #{issue_id}"
+      else
+        debug "Issue #{owner}/#{repo}->#{issue_id} exists"
+        if cur_issue[:pull_request] == false and not pull_req.nil?
+          info "Updated issue #{owner}/#{repo}->#{issue_id} as pull request"
+          issues.filter(:issue_id => issue_id, :repo_id => repository[:id]).update(
+              :pull_request => true,
+              :pull_request_id => pull_req[:id])
+        end
+      end
+      ensure_issue_events(owner, repo, issue_id) if events
+      ensure_issue_comments(owner, repo, issue_id) if comments
+      ensure_issue_labels(owner, repo, issue_id) if labels
+      issues.first(:issue_id => issue_id,
+                   :repo_id => repository[:id])
+    end
+
+    ##
+    # Make sure that the issue exists
+    def ensure_issue_webhook(owner, repo, issue_id, events = true,
+                     comments = true, labels = true)
+
+      issues = db[:issues]
+      repository = ensure_repo(owner, repo)
+
+      if repo.nil?
+        warn "Could not find repo #{owner}/#{repo} for retrieving issue #{issue_id}"
+        return
+      end
+
+      cur_issue = issues.first(:issue_id => issue_id,
+                               :repo_id => repository[:id])
+
+
+      retrieved = retrieve_issue_webhook(owner, repo, issue_id)
       if retrieved.nil?
         warn "Could not retrieve issue #{owner}/#{repo} -> #{issue_id}"
         return
@@ -1663,6 +1649,51 @@ module GHTorrent
     def ensure_issue_comment(owner, repo, issue_id, comment_id, pull_req_id = nil)
       issue = if pull_req_id.nil?
                 ensure_issue(owner, repo, issue_id, false, false, false)
+              else
+                db[:issues].first(:pull_request_id => pull_req_id)
+              end
+
+      if issue.nil?
+        warn "Could not find issue #{owner}/#{repo} -> #{issue_id} for retrieving comment #{comment_id}"
+        return
+      end
+
+      issue_comment_str = "#{owner}/#{repo} -> #{issue_id}/#{comment_id}"
+
+      curcomment = db[:issue_comments].first(:issue_id => issue[:id],
+                                          :comment_id => comment_id)
+      if curcomment.nil?
+
+        retrieved = retrieve_issue_comment(owner, repo, issue_id, comment_id)
+
+        if retrieved.nil?
+          warn "Could not retrieve issue_comment #{issue_comment_str}"
+          return
+        end
+
+        user = ensure_user(retrieved['user']['login'], false, false)
+
+        db[:issue_comments].insert(
+            :comment_id => comment_id,
+            :issue_id => issue[:id],
+            :user_id => unless user.nil? then user[:id] end,
+            :created_at => date(retrieved['created_at'])
+        )
+
+        info "Added issue_comment #{issue_comment_str}"
+        db[:issue_comments].first(:issue_id => issue[:id],
+                                   :comment_id => comment_id)
+      else
+        debug "Issue comment #{issue_comment_str} exists"
+        curcomment
+      end
+    end
+
+    ##
+    # Retrieve and process +comment_id+ for an +issue_id+
+    def ensure_issue_comment_webhook(owner, repo, issue_id, comment_id, pull_req_id = nil)
+      issue = if pull_req_id.nil?
+                ensure_issue_webhook(owner, repo, issue_id, false, false, false)
               else
                 db[:issues].first(:pull_request_id => pull_req_id)
               end

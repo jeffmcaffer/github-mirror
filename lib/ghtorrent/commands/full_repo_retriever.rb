@@ -98,6 +98,7 @@ module GHTorrent
           begin
             if options[:only_stage].nil?
               stages.each do |x|
+                info "Beginning stage #{x}"
                 stage = x
                 ght.send(x, user, repo)
               end
@@ -113,6 +114,7 @@ module GHTorrent
 
         # Process repo events
         unless options[:no_events_given]
+          info "Beginning events"
           events = get_repo_events(owner, repo).sort { |e| e['id'].to_i }
           events.each do |event|
             begin

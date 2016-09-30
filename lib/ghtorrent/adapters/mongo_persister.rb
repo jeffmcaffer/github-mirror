@@ -12,32 +12,32 @@ module GHTorrent
 
     # Supported configuration options.
     LOCALCONFIG = {
-        :mongo_host => "mongo.host",
-        :mongo_port => "mongo.port",
-        :mongo_db => "mongo.db",
-        :mongo_username => "mongo.username",
-        :mongo_passwd => "mongo.password",
-        :mongo_replicas => "mongo.replicas"
+      :mongo_host => "mongo.host",
+      :mongo_port => "mongo.port",
+      :mongo_db => "mongo.db",
+      :mongo_username => "mongo.username",
+      :mongo_passwd => "mongo.password",
+      :mongo_replicas => "mongo.replicas"
     }
 
     IDXS = {
-        :events                => %w(id),
-        :users                 => %w(login),
-        :commits               => %w(sha),
-        :commit_comments       => %w(commit_id id),
-        :repos                 => %w(name owner.login),
-        :repo_labels           => %w(repo owner),
-        :repo_collaborators    => %w(repo owner login),
-        :followers             => %w(follows login),
-        :org_members           => %w(org),
-        :watchers              => %w(repo owner login),
-        :forks                 => %w(repo owner id),
-        :pull_requests         => %w(repo owner number),
-        :pull_request_comments => %w(repo owner pullreq_id id),
-        :issues                => %w(repo owner number),
-        :issue_events          => %w(repo owner issue_id id),
-        :issue_comments        => %w(repo owner issue_id id),
-        :geo_cache             => %w(key)
+      :events                => %w(id),
+      :users                 => %w(login),
+      :commits               => %w(sha),
+      :commit_comments       => %w(commit_id id),
+      :repos                 => %w(name owner.login),
+      :repo_labels           => %w(repo owner),
+      :repo_collaborators    => %w(repo owner login),
+      :followers             => %w(follows login),
+      :org_members           => %w(org),
+      :watchers              => %w(repo owner login),
+      :forks                 => %w(repo owner id),
+      :pull_requests         => %w(repo owner number),
+      :pull_request_comments => %w(repo owner pullreq_id id),
+      :issues                => %w(repo owner number),
+      :issue_events          => %w(repo owner issue_id id),
+      :issue_comments        => %w(repo owner issue_id id),
+      :geo_cache             => %w(key)
     }
 
     attr_reader :settings

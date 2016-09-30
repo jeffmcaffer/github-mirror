@@ -23,6 +23,7 @@ module GHTorrent
         :mirror_history_pages_back => 'mirror.history_pages_back',
         :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
+        :store_pull_request_commits => 'mirror.store_pull_request_commits',
 
         :github_token => 'mirror.token',
 
@@ -31,7 +32,6 @@ module GHTorrent
         :rescue_loops => 'mirror.rescue_loops',
         :req_limit => 'mirror.req_limit',
         :geoloc_wait => 'mirror.geoloc_wait',
-        :fork_commits => 'mirror.fork_commits',
 
         :logging_level => 'logging.level',
         :logging_uniq => 'logging.uniq',
@@ -52,6 +52,7 @@ module GHTorrent
         :mirror_persister => 'noop',
         :mirror_history_pages_back => 10,
         :user_agent => 'ghtorrent',
+        :store_pull_request_commits => 'false',
 
         :github_token => '',
 
@@ -60,7 +61,6 @@ module GHTorrent
         :rescue_loops => 'true',
         :req_limit => 4998,
         :geoloc_wait => 2,
-        :fork_commits => 'fork_point',
 
         :logging_level => 'info',
         :logging_uniq => '',

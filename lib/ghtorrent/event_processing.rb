@@ -15,12 +15,22 @@ module GHTorrent
       data['payload']['commits'].each do |c|
         url = c['url'].split(/\//)
 
-        unless url[7].match(/[a-f0-9]{40}$/)
+        if url.length < 8
+          sha = c["sha"]
+          repo = url[4]
+          org = url[3]
+        else
+          sha = url[7]
+          repo = url[5]
+          org = url[4]
+        end
+        
+        unless sha.match(/[a-f0-9]{40}$/)
           error "Ignoring commit #{sha}"
           return
         end
-
-        ght.ensure_commit(url[5], url[7], url[4])
+        
+        ght.ensure_commit(repo, sha, org)
       end
 
       # Take care of pushes with more than 20 commits
@@ -30,7 +40,7 @@ module GHTorrent
 
         owner        = data['repo']['name'].split(/\//)[0]
         repo         = data['repo']['name'].split(/\//)[1]
-        last_sha     = data['payload']['commits'].last['url'].split(/\//)[7]
+        last_sha     = data['payload']['commits'].last['sha']
         push_commits = data['payload']['commits'].map { |x| x['sha'] }
 
         while true
@@ -39,23 +49,33 @@ module GHTorrent
 
           commits.each do |c|
             url = c['url'].split(/\//)
-            next if push_commits.include? url[7]
+            if url.length < 8
+              sha = c["sha"]
+              com_repo = url[4]
+              org = url[3]
+            else
+              sha = url[7]
+              com_repo = url[5]
+              org = url[4]
+            end
+                    
+            #next if push_commits.include? sha
 
             sha_not_exist = ght.db.from(:commits, :project_commits, :projects, :users).\
                             where(:projects__id => :project_commits__project_id).\
                             where(:commits__id => :project_commits__commit_id).\
                             where(:projects__owner_id => :users__id).\
-                            where(:projects__name => url[5]).\
-                            where(:users__login => url[4]).\
-                            where(:commits__sha => url[7]).all.empty?
+                            where(:projects__name => com_repo).\
+                            where(:users__login => org).\
+                            where(:commits__sha => sha).all.empty?
 
             if not sha_not_exist
-              debug "Commit #{url[7]} already registered with #{url[4]}/#{url[5]}."
+              debug "Commit #{sha} already registered with #{org}/#{com_repo}."
               return
             end
 
-            ght.ensure_commit(url[5], url[7], url[4])
-            last_sha = url[7]
+            ght.ensure_commit(com_repo, sha, org)
+            last_sha = sha
           end
         end
       end
@@ -202,7 +222,7 @@ module GHTorrent
       repo = data['repo']['name'].split(/\//)[1]
       issue_id = data['payload']['issue']['number']
 
-      ght.ensure_issue(owner, repo, issue_id)
+      ght.ensure_issue_webhook(owner, repo, issue_id)
     end
 
     def IssueCommentEvent(data)
@@ -211,7 +231,7 @@ module GHTorrent
       issue_id = data['payload']['issue']['number']
       comment_id = data['payload']['comment']['id']
 
-      ght.ensure_issue_comment(owner, repo, issue_id, comment_id)
+      ght.ensure_issue_comment_webhook(owner, repo, issue_id, comment_id)
     end
 
     def CreateEvent(data)
