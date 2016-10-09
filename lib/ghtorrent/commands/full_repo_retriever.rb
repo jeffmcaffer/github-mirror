@@ -104,19 +104,10 @@ module GHTorrent
             else
               stage = options[:only_stage]
               ght.send(options[:only_stage], user, repo)
-              end
+            end
           rescue StandardError => e
             warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
             warn("Exception trace #{e.backtrace.join("\n")}")
-          end
-        end
-        unless options[:no_entities_given]
-          if options[:only_stage].nil?
-            stages.each do |x|
-              runStage(x, user, repo)
-            end
-          else
-            runStage(options[:only_stage], user, repo)
           end
         end
 
