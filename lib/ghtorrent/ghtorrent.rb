@@ -1001,7 +1001,7 @@ module GHTorrent
 
     ##
     # Make sure that a watcher/stargazer exists for a repository
-    def ensure_watcher(owner, repo, watcher, date_added: nil)
+    def ensure_watcher(owner, repo, watcher, date_added = nil)
       project = ensure_repo(owner, repo)
       new_watcher = ensure_user(watcher, false, false)
 
