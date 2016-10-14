@@ -69,14 +69,18 @@ Values in the config.yaml file set with the -c command are overridden.
       (1..instances.to_i).map do |i|
         newcfg = self.settings.clone
         newcfg = override_config(newcfg, :github_token, token)
-        newcfg = override_config(newcfg, :req_limit, limit)
+        newcfg = override_config(newcfg, :req_limit, limit.to_i)
 
         newcfg
       end
     end.flatten.select { |x| !x.nil? }
 
     children = configs.map do |config|
-      pid = Process::fork
+      begin
+        pid = Process::fork
+      rescue NotImplementedError
+        # Eat the error on Windows and run inline for testing
+      end
 
       if pid.nil?
         retriever = clazz.new(config, options[:queue], options)

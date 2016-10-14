@@ -165,6 +165,8 @@ module GHTorrent
           return
         end
 
+        # TODO temporarily null out the commit body due to size issues
+        c["files"].each |file| file["patch"] = null
         unq = persister.store(:commits, c)
         info "Added commit #{user}/#{repo} -> #{sha}"
         c
