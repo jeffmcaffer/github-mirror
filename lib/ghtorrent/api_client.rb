@@ -186,7 +186,7 @@ module GHTorrent
         # in some cases (e.g., 403) @reset is 0 and we don't want to retry.
         if (@remaining < @req_limit) and (@reset > 0)
           to_sleep = @reset - Time.now.to_i + 2
-          debug "Request limit reached, sleeping for #{to_sleep} secs"
+          warn "Request limit reached, reset in: #{to_sleep} secs"
           t = Thread.new do
             slept = 0
             while true do
