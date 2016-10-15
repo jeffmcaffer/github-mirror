@@ -60,10 +60,12 @@ module GHTorrent
       end
 
       def retrieve_full_repo(owner, repo)
-        user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
+        start_time = Time.now
+        info "Start fetching: #{owner}/#{repo}"
 
+        user_entry = ght.transaction { ght.ensure_user(owner, false, false) }
         if user_entry.nil?
-          warn "Cannot find user #{owner}"
+          warn "Skip: #{owner}/#{repo}. Owner: #{owner} not found"
           return
         end
 
@@ -79,7 +81,7 @@ module GHTorrent
           repo_entry = ght.ensure_repo(owner, repo)
 
           if repo_entry.nil?
-            warn "Cannot find repository #{owner}/#{repo}"
+            warn "Skip: #{owner}/#{repo}. Repo: #{repo} not found"
             return
           end
 
@@ -87,7 +89,7 @@ module GHTorrent
           if not repo_entry[:updated_at].nil? \
             and repo_entry[:updated_at] > (Time.now - 10 * 24 * 60 * 60) \
             and not options[:force]
-            warn "Last update too recent (#{Time.at(repo_entry[:updated_at])}) for #{owner}/#{repo}"
+            warn "Skip: #{owner}/#{repo}, Too new: #{Time.at(repo_entry[:updated_at])}"
             return
           end
 
@@ -98,12 +100,16 @@ module GHTorrent
           begin
             if options[:only_stage].nil?
               stages.each do |x|
+                stage_time = Time.now
                 stage = x
                 ght.send(x, user, repo)
+                info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
               end
             else
+              stage_time = Time.now
               stage = options[:only_stage]
               ght.send(options[:only_stage], user, repo)
+              info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
             end
           rescue StandardError => e
             warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
@@ -127,6 +133,7 @@ module GHTorrent
             end
           end
         end
+        info "Done fetching: #{owner}/#{repo}, Time: #{Time.now.to_ms - start_time.to_ms} ms"
       end
     end
   end
