@@ -96,6 +96,7 @@ module GHTorrent
           ght.db.from(:projects).where(:id => repo_entry[:id]).update(:updated_at => Time.now)
         end
 
+        stage = nil
         unless options[:no_entities_given]
           begin
             if options[:only_stage].nil?
@@ -112,7 +113,7 @@ module GHTorrent
               info "Stage: #{stage} completed, Repo: #{owner}/#{repo}, Time: #{Time.now.to_ms - stage_time.to_ms} ms"
             end
           rescue StandardError => e
-            warn("Error processing #{stage} for #{owner}/#{repo}: #{$!}")
+            warn("Error in stage: #{stage}, Repo: #{owner}/#{repo}, Message: #{$!}")
             warn("Exception trace #{e.backtrace.join("\n")}")
           end
         end
@@ -127,9 +128,9 @@ module GHTorrent
               next if options[:events_before_given] and event['id'].to_i >= options[:events_before]
 
               send(event['type'], event)
-              puts "Processed event #{event['type']}-#{event['id']}"
+              info "Processed: #{event['type']}, Id: #{event['id']}"
             rescue StandardError => e
-              puts "Could not process event #{event['type']}-#{event['id']}: #{e.message}"
+              warn "Could not process: #{event['type']}, Id: #{event['id']}: #{e.message}"
             end
           end
         end

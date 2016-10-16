@@ -187,9 +187,10 @@ module GHTorrent
 
       commits = restricted_page_request(url, pages)
 
-      commits.map do |c|
+      result = commits.map do |c|
         retrieve_commit(repo, c['sha'], user)
       end
+      result.reject { |v| v.nil? }
     end
 
     def retrieve_repo(user, repo, refresh = false)
