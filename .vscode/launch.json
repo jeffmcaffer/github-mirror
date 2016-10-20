@@ -148,7 +148,7 @@
       "request": "launch",
       "program": "${workspaceRoot}/bin/ght-retrieve-repo",
       "args": [
-        "contoso-d", "Test", "-f", "-c", "${workspaceRoot}/../config.yaml"
+        "contoso-d", "testtest", "-f", "-c", "${workspaceRoot}/../config.yaml"
       ],
       "env": {
         "RUBYOPT": "-I${workspaceRoot}/lib",

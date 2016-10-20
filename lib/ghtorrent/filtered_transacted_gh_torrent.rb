@@ -4,9 +4,9 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
   attr_reader :org_filter
 
   def initialize(settings)
-    @org_filter = load_orgs_file(config(:mirror_orgs_file))
     super
-  end 
+    @org_filter = load_orgs_file(config(:mirror_orgs_file))
+  end
 
   def ensure_repo(owner, repo, recursive = false)
     if org_filter.include?(owner)
@@ -40,7 +40,7 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
   def load_orgs_file(path)
     result = Set.new
     return result unless File.exists?(path)
-     
+
     IO.foreach(path) do |x|
       x = x.strip
       if x.empty? == false

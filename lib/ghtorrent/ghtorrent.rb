@@ -24,7 +24,6 @@ module GHTorrent
       @retry_on_error <<  Mysql2::Error      if defined? Mysql2::Error
       @retry_on_error <<  SQLite3::Exception if defined? SQLite3::Exception
       @retry_on_error <<  PG::Error if defined? PG::Error
-      @org_filter = load_orgs_file(config(:mirror_orgs_file))
     end
 
     def dispose

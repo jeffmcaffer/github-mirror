@@ -76,7 +76,7 @@ module GHTorrent
     end
 
     def get_mirror_class
-      klass = config("mirror_class") 
+      klass = config(:mirror_class)
       GHTorrent.const_get(klass)
     end
 

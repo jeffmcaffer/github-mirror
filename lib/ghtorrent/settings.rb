@@ -23,7 +23,7 @@ module GHTorrent
         :mirror_history_pages_back => 'mirror.history_pages_back',
         :mirror_orgs_file => 'mirror.orgs_file',
         :mirror_mode => 'mirror.mode',
-        :mirror_class => 'TransactedGHTorrent',
+        :mirror_class => 'mirror.class',
         :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
         :store_pull_request_commits => 'mirror.store_pull_request_commits',
