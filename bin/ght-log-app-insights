@@ -115,7 +115,7 @@ def parse_full_repo_retriever_line(line)
   elsif line.start_with?("Processed:")
     # "Processed: #{event['type']}, Id: #{event['id']}"
     type, id = line.match(/.*Processed: ([^,]+), Id: ([\d]+)/).captures
-    $tc.track_event 'repo_fetch_procesed_event', :properties => { 'type' => type, 'id' => id }
+    $tc.track_event 'repo_fetch_processed_event', :properties => { 'type' => type, 'id' => id }
   elsif line.start_with?("Could not process:")
     "Could not process: #{event['type']}, Id: #{event['id']}: #{e.message}"
     type, id, message = line.match(/.*process: ([^,]+), Id: ([\d]+): (.*)$/).captures
@@ -212,10 +212,11 @@ Options:
     :short => 'f'
 end
 
-sender = ApplicationInsights::Channel::AsynchronousSender.new
-queue = ApplicationInsights::Channel::AsynchronousQueue.new sender
-channel = ApplicationInsights::Channel::TelemetryChannel.new nil, queue
-$tc = ApplicationInsights::TelemetryClient.new opts[:key], channel
+# sender = ApplicationInsights::Channel::AsynchronousSender.new
+# queue = ApplicationInsights::Channel::AsynchronousQueue.new sender
+# channel = ApplicationInsights::Channel::TelemetryChannel.new nil, queue
+# $tc = ApplicationInsights::TelemetryClient.new opts[:key], channel
+$tc = ApplicationInsights::TelemetryClient.new opts[:key]
 ApplicationInsights::UnhandledException.collect(opts[:key])
 
 $error = false
