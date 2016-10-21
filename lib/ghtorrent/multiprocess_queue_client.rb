@@ -55,14 +55,8 @@ Values in the config.yaml file set with the -c command are overridden.
                 :short => 'i', :default => false
   end
 
-  def validate
-    super
-    Trollop::die 'Argument mapping-file is required' unless not args[0].nil?
-  end
-
-  def go
-
-    configs = File.open(ARGV[0]).readlines.map do |line|
+  def load_configs(path)
+    File.open(path).readlines.map do |line|
       next if line =~ /^#/
       line.strip.split(/ /)[0]
 
@@ -76,6 +70,10 @@ Values in the config.yaml file set with the -c command are overridden.
         newcfg
       end
     end.flatten.select { |x| !x.nil? }
+  end
+
+  def go
+    configs = ARGV.length == 0 ? [[config(:github_token), 1, config(:req_limit)]] : load_configs(ARGV[0])
 
     children = configs.map do |config|
       if not options[:inproc]

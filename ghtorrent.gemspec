@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.executables   = ['ght-data-retrieval', 'ght-mirror-events', 'ght-load',
                      'ght-retrieve-repo', 'ght-retrieve-user',
                      'ght-retrieve-repos', 'ght-retrieve-users',
-                     'ght-mass-harvester', 'ght-webhook']
+                     'ght-mass-harvester', 'ght-webhook', 'ght-mirror-webhooks']
   s.files         = FileList['lib/**/*.rb',
                              'bin/*',
                              '[A-Z]*',
