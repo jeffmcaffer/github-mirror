@@ -64,7 +64,7 @@
       }
     },
     {
-      "linux": "einhorn -n 5 -k bin/ght-retrieve-repos -c ../config.yaml -q evt.projects -i ../keymap.txt 2>&1 | bin/ght-log-app-insights -k ed1a849b-a27a-4513-ae6b-d96456bc2c32 | ../fetchRepos.log",
+      "linux": "bin/ght-retrieve-repos -c ../config.yaml -q evt.projects -i ../keymap.txt 2>&1 | bin/ght-log-app-insights -k ed1a849b-a27a-4513-ae6b-d96456bc2c32,
       "name": "Process Repos Queue",
       "type": "Ruby",
       "request": "launch",
@@ -78,7 +78,7 @@
       }
     },
     {
-      "name": "Webhooks",
+      "name": "Listen for webhooks",
       "type": "Ruby",
       "request": "launch",
       "program": "${workspaceRoot}/bin/ght-webhook",
@@ -91,10 +91,10 @@
       }
     },
     {
-      "name": "Mirror events",
+      "name": "Mirror webhooks",
       "type": "Ruby",
       "request": "launch",
-      "program": "${workspaceRoot}/bin/ght-mirror-events",
+      "program": "${workspaceRoot}/bin/ght-mirror-webhooks",
       "args": [
         "-c", "${workspaceRoot}/../config.yaml"
       ],
