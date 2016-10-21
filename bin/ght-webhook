@@ -102,6 +102,7 @@ post '/' do
     info "Malformed hook body"
     halt 400, "Error parsing object #{request.body.read}"
   end
+  begin
     publish_event(event)
   rescue Exception => e
     warn "Error queuing: #{e.message}"
