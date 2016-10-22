@@ -2,5 +2,6 @@
 
 require 'rubygems'
 require 'ghtorrent'
+require 'ghtorrent/commands/ght_mirror_webhooks'
 
 GHTMirrorWebhooks.run(ARGV)
