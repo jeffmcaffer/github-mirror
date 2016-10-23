@@ -6,36 +6,31 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
   def initialize(settings)
     super
     @org_filter = load_orgs_file(config(:mirror_orgs_file))
+    @next_check_time = 0
   end
 
   def ensure_repo(owner, repo, recursive = false)
-    if org_filter.include?(owner)
-      super
-    else
-      warn "Organization #{owner} excluded by filter"
-      return
-    end
+    super if include_org? owner
   end
 
   def ensure_org(organization, members = true)
-    if org_filter.include?(organization)
-      super
-    else
-      warn "Organization #{organization} excluded by filter"
-      return
-    end
+    super if include_org? owner
   end
 
   def ensure_repo_recursive(owner, repo)
-    if org_filter.include?(owner)
-      super
-    else
-      warn "Organization #{owner} excluded by filter"
-      return
-    end
+    super if include_org? organization
   end
 
   private
+
+  def include_org? (org)
+    if Time.now.to_ms > next_check_time
+      load_orgs_file config(:mirror_orgs_file)
+    end
+    result = org_filter.include?(org)
+    warn "Organization #{org} excluded by filter" unless result
+    result
+  end
 
   def load_orgs_file(path)
     result = Set.new
@@ -47,6 +42,7 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
         result.add(x)
       end
     end
+    next_check_time = Time.now.to_ms + (5 * 60 * 1000)
     result
   end
 end
