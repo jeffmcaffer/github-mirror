@@ -8,7 +8,6 @@
 
 require 'sinatra'
 require 'bunny'
-require 'mongo'
 require 'yaml'
 require 'json'
 require 'openssl'
@@ -38,18 +37,6 @@ def configuration
 end
 
 configure do
-  if configuration['mongo']['username'].nil?
-    db = Mongo::Client.new(["#{configuration['mongo']['host']}:#{configuration['mongo']['port']}"],
-                           :database => configuration['mongo']['db'],
-                           :ssl => true)
-  else
-    db = Mongo::Client.new(["#{configuration['mongo']['host']}:#{configuration['mongo']['port']}"],
-                           :database => configuration['mongo']['db'],
-                           :user => configuration['mongo']['username'],
-                           :password => configuration['mongo']['password'],
-                           :ssl => true)
-  end
-
   # Stash away the @settings value and define a [] method to access it.  The "settings"
   # var here is actually the Sinatra application. The GHT config() method will try to run
   # (literally) settings[x] at a time when the "settings" field is the Sinatra app.  By adding
@@ -60,10 +47,6 @@ configure do
     $nested_settings[x]
   end
 
-  db.database.collection_names
-  STDERR.puts "Connection to MongoDB: #{configuration['mongo']['host']} succeeded"
-
-  set :mongo, db
   begin
     conn = Bunny.new(:host => configuration['amqp']['host'],
                      :port => configuration['amqp']['port'],
