@@ -12,8 +12,8 @@ class GHTMirrorWebhooks < GHTMirrorEvents
         info "Success dispatching event. Repo: #{msg}, Time: #{Time.now.to_ms - start.to_ms} ms"
       rescue StandardError => e
         # Give a message a chance to be reprocessed
+        warn "Error dispatching event. Repo: #{msg}, Time: #{Time.now.to_ms - start.to_ms} ms, Requeue: #{not headers.redelivered?}"
         if headers.redelivered?
-          warn "Error dispatching event. Repo: #{msg}, Time: #{Time.now.to_ms - start.to_ms} ms"
           channel.reject(headers.delivery_tag, false)
         else
           channel.reject(headers.delivery_tag, true)

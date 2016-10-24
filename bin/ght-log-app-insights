@@ -123,6 +123,18 @@ def parse_full_repo_retriever_line(line)
   end
 end
 
+def parse_ght_mirror_webhooks_line(line)
+  if line.start_with?("Success")
+    # "Success dispatching event. Repo: #{msg}, Time: #{Time.now.to_ms - start.to_ms} ms"
+    repo, time = line.match(/.*Repo: ([^,]+), Time: ([\d]+)/).captures
+    $tc.track_event 'webhook_event_queued', :properties => { 'repo' => repo, 'time' => time }
+  elsif line.start_with?("Error")
+    # "Error dispatching event. Repo: #{msg}, Time: #{Time.now.to_ms - start.to_ms} ms, Requeue: #{not headers.redelivered?}"
+    repo, time, requeue = line.match(/.*Repo: ([^,]+), Time: ([\d]+) ms, Requeue: (.*)$/).captures
+    $tc.track_event 'webhook_event_queue_error', :properties => { 'repo' => repo, 'time' => time, 'requeue' => requeue }
+  end
+end
+
 def parse_ght_webhook_line(line)
   if line.start_with?("Malformed")
     # "Malformed hook body"
@@ -138,6 +150,14 @@ def parse_ght_webhook_line(line)
     # "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
     repo, event, type = line.match(/.*Queuing: ([^,]+), Event: ([^,]+), Type: ([.*]+)$/).captures
     $tc.track_event 'webhook_queuing', :properties => { 'repo' => repo, 'event' => event, 'type' => type }
+  end
+end
+
+def parse_ght_mirror_events_line(line)
+  if line.start_with?("Discovered")
+    # "Discovered #{stored.size} events, Oldest: #{stored.last['id']}, Newest: #{stored.first['id']}"
+    count, oldest, newest = line.match(/.*Discovered ([\d]+) events, Oldest: ([\d]+), Newest: ([\d]+)$/).captures
+    $tc.track_event 'discovered_events', :properties => { 'count' => count, 'oldest' => oldest, 'newest' => newest }
   end
 end
 
@@ -191,8 +211,12 @@ def process_log_line(line, number)
         parse_full_user_retriever_line(msg)
       when 'full_repo_retriever'
         parse_full_repo_retriever_line(msg)
-      when 'ght-webhook'
+      when 'ght_mirror_webhooks'
+        parse_ght_mirror_webhooks_line(msg)
+      when 'ght_webhook'
         parse_ght_webhook_line(msg)
+      when 'ght_mirror_events'
+        parse_ght_mirror_events_line(msg)
       end
     rescue Exception => e
       puts "Error parsing ##{number}, Error: #{e.message}, Line: #{msg}"

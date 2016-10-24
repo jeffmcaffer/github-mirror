@@ -130,6 +130,9 @@ def verify_signature?(payload_body)
   secret = configuration['mirror']['webhook_secret'];
   return true if secret.nil?
 
+  given = request.env['HTTP_X_HUB_SIGNATURE']
+  return false if given.nil?
+
   signature = 'sha1=' + OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), secret, payload_body)
-  return Rack::Utils.secure_compare(signature, request.env['HTTP_X_HUB_SIGNATURE'])
+  return Rack::Utils.secure_compare(signature, given)
 end

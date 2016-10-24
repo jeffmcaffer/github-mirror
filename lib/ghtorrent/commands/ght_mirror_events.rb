@@ -90,7 +90,7 @@ are also queued, to ensure no additional information is gone missing.
           exchange.publish e['id'], :persistent => true, :routing_key => key
         end
       end
-
+      info "Discovered ##{stored.size} events, Oldest: #{stored.last['id']}, Newest: #{stored.first['id']}" unless stored.empty?
       return new, dupl
     rescue StandardError => e
       STDERR.puts e.message
