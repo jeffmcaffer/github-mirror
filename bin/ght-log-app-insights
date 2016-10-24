@@ -227,7 +227,7 @@ if opts[:file].nil?
   ARGF.each do |line|
     # TODO not sure what this does but its is not working on unbunto 16.04 bash
     # next if line !~ /^[IDEW]/
-    process_log_line(line)
+    process_log_line(line, number += 1)
   end
 else
   puts "Reading from file #{opts[:file]}..."
