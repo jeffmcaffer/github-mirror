@@ -38,9 +38,7 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
 
     IO.foreach(path) do |x|
       x = x.strip
-      if x.empty? == false
-        result.add(x)
-      end
+      result.add(x) unless x.empty?
     end
     next_check_time = Time.now.to_ms + (5 * 60 * 1000)
     result

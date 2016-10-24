@@ -31,7 +31,7 @@ Queue a mess of repos for full harvesting.
     setup
     repo_list = File.open(@options[:repos], 'r') { |f| f.readlines }
     repo_list.each do |repo|
-      puts "Queuing #{repo}"
+      info "Queuing #{repo} for full retrieval"
       @exchange.publish repo.strip, :persistent => true, :routing_key => GHTorrent::ROUTEKEY_PROJECTS
     end
   end
@@ -50,7 +50,7 @@ Queue a mess of repos for full harvesting.
     end
 
     channel = connection.create_channel
-    STDERR.puts "Connection to RabbitMQ: #{config(:amqp_host)} succeeded"
+    info "Connection to RabbitMQ: #{config(:amqp_host)} succeeded"
 
     @exchange = channel.topic(config(:amqp_exchange), :durable => true,
                           :auto_delete => false)
