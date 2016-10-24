@@ -86,7 +86,7 @@ module GHTorrent
           url
         end
       else
-        url
+        url + '?per_page=100'
       end
     end
 
