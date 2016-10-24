@@ -21,13 +21,17 @@ module GHTorrent
         :mirror_urlbase => 'mirror.urlbase',
         :mirror_persister => 'mirror.persister',
         :mirror_history_pages_back => 'mirror.history_pages_back',
-        :mirror_orgs_file => 'mirror.orgs_file',
-        :mirror_class => 'mirror.class',
         :uniq_id => 'mirror.uniq_id',
         :user_agent => 'mirror.user_agent',
         :store_pull_request_commits => 'mirror.store_pull_request_commits',
 
         :github_token => 'mirror.token',
+
+        :mirror_orgs_file => 'mirror.orgs_file',
+        :mirror_repos_file => 'mirror.repos_file',
+        :mirror_class => 'mirror.class',
+        :github_webhook_token => 'mirror.webhook_token',
+        :github_webhook_secret => 'mirror.webhook_secret',
 
         :attach_ip => 'mirror.attach_ip',
 

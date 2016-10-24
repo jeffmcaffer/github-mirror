@@ -45,12 +45,6 @@ mirror:
   # Number of reqs/hour to leave on the provided key
   req_limit: 10
 
-  # File listing orgs to consider
-  # orgs_file: orgs.txt
-
-  # Mode for collecting events.  Either webhooks or github.  Defaults to github if not specified
-  # mode: webhooks
-
   # User agent to use for requests. You must use a unique name per client program
   user_agent: ghtorrent
 
@@ -69,6 +63,22 @@ mirror:
   # Whether or not you would like to store data in the pull_request_commits collection in Mongo.
   # Default is 'false'
   store_pull_request_commits: false
+
+  ###############################
+  # Webhooks related settings
+  # Class to use for walking GitHub entitied.
+  # - TransactedGHTorrent [Default] walks in a transactional fashion
+  # - FilteredTransactedGHTorrent allows for filtering based on orgs.
+  # class: FilteredTransactedGHTorrent
+
+  # The list of orgs to track.  Leave unset to track all orgs
+  # orgs_file: "../orgs"
+  # repos_file: "../repos"
+
+  # The API token to use for installing webhooks and secret used to verify GitHub callbacks.
+  # Only needed if you plan on using ght-manage-orgs to automatically detect and monitor orgs.
+  # webhook_token:
+  # webhook_secret:
 
 mongo:
   host: 127.0.0.1      # Mongo's IP addr

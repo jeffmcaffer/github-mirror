@@ -127,10 +127,9 @@ def publish_event(event)
 end
 
 def verify_signature?(payload_body)
-  if configuration['debug'] and not configuration['debug']['validate_hooks']
-    return true
-  end
+  secret = configuration['mirror']['webhook_secret'];
+  return true if secret.nil?
 
-  signature = 'sha1=' + OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), ENV['SECRET_KEY'], payload_body)
+  signature = 'sha1=' + OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), secret, payload_body)
   return Rack::Utils.secure_compare(signature, request.env['HTTP_X_HUB_SIGNATURE'])
 end
