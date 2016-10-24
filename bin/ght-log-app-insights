@@ -181,6 +181,7 @@ def process_log_line(line, number)
     return
   end
 
+  puts line
   $lineBuffer = [] if $error
   $lineBuffer.shift if $lineBuffer.length >= 2
   $lineBuffer << line
@@ -251,6 +252,7 @@ if opts[:file].nil?
   ARGF.each do |line|
     # TODO not sure what this does but its is not working on unbunto 16.04 bash
     # next if line !~ /^[IDEW]/
+  puts line
     process_log_line(line, number += 1)
   end
 else
