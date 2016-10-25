@@ -148,7 +148,7 @@ def parse_ght_webhook_line(line)
     $tc.track_event 'webhook_queue_fail', :properties => { 'message' => message }
   elsif line.start_with?("Queuing:")
     # "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
-    repo, event, type = line.match(/.*Queuing: ([^,]+), Event: ([^,]+), Type: ([.*]+)$/).captures
+    repo, event, type = line.match(/.*Queuing: ([^,]+), Event: ([^,]+), Type: (.*)$/).captures
     $tc.track_event 'webhook_queuing', :properties => { 'repo' => repo, 'event' => event, 'type' => type }
   end
 end
@@ -254,6 +254,7 @@ if opts[:file].nil?
     # TODO not sure what this does but its is not working on unbunto 16.04 bash
     # next if line !~ /^[IDEW]/
     process_log_line(line, number += 1)
+    $tc.flush if number.modulo(5) == 0
   end
 else
   puts "Reading from file #{opts[:file]}..."
