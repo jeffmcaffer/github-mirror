@@ -13,12 +13,10 @@ require 'json'
 require 'openssl'
 require 'json'
 require 'thread'
-require_relative '../lib/ghtorrent/api_client.rb'
 require 'ghtorrent/logging'
 
 include GHTorrent::Logging
 include GHTorrent::APIClient
-include GHTorrent::Logging
 
 @@semaphore = Mutex.new
 def configuration

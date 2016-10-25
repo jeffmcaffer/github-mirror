@@ -219,9 +219,9 @@ def process_log_line(line, number)
       when 'ght_mirror_events'
         parse_ght_mirror_events_line(msg)
       end
-    rescue Exception => e
-      puts "Error parsing ##{number}, Error: #{e.message}, Line: #{msg}"
-    end
+  rescue Exception => e
+    puts "Error parsing ##{number}, Error: #{e.message}, Line: #{msg}"
+  end
 end
 
 opts = Trollop::options do

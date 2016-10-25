@@ -29,6 +29,8 @@ module GHTorrent
         @logger_uniq ||= config(:logging_uniq)
 
         logger = if config(:logging_file).casecmp('stdout')
+                   # set STDOUT to synchronous to ensure log messages are written right away
+                   STDOUT.sync = true
                    Logger.new(STDOUT)
                  elsif config(:logging_file).casecmp('stderr')
                    Logger.new(STDERR)
