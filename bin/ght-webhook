@@ -19,6 +19,7 @@ include GHTorrent::Logging
 
 configure do
   @@semaphore = Mutex.new
+  set :logging, false
 
   # Load and stash away the config and define a [] method to access it.  The "settings"
   # var here is actually the Sinatra application. The GHT config() method will try to run
