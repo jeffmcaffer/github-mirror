@@ -17,39 +17,28 @@ require 'ghtorrent/logging'
 
 include GHTorrent::Logging
 
-@@semaphore = Mutex.new
-def configuration
-  configuration = if ENV['CONFIG'].nil?
-             if ARGV[0].nil?
-               'config.yaml'
-             else
-               ARGV[0]
-             end
-           else
-             ENV['CONFIG']
-           end
-
-  @settings ||= YAML::load_file configuration
-  @settings
-end
-
 configure do
-  # Stash away the @settings value and define a [] method to access it.  The "settings"
+  @@semaphore = Mutex.new
+
+  # Load and stash away the config and define a [] method to access it.  The "settings"
   # var here is actually the Sinatra application. The GHT config() method will try to run
   # (literally) settings[x] at a time when the "settings" field is the Sinatra app.  By adding
   # [] to Sinatra, we can trick GHT and get the config values accessible.
   # TODO figure out Ruby closures to eliminate the global
-  $nested_settings = configuration
+  config_file = ENV['CONFIG']
+  config_file = (ARGV[0].nil? ? 'config.yaml' : ARGV[0]) if config_file.nil?
+
+  $nested_settings = YAML::load_file config_file
   def settings.[](x)
     $nested_settings[x]
   end
 
   begin
-    conn = Bunny.new(:host => configuration['amqp']['host'],
-                     :port => configuration['amqp']['port'],
-                     :username => configuration['amqp']['username'],
-                     :password => configuration['amqp']['password'],
-                     :network_recovery_interval => 7)
+    conn = Bunny.new(:host => config(:amqp_host),
+                    :port => config(:amqp_port),
+                    :username => config(:amqp_username),
+                    :password => config(:amqp_password),
+                    :network_recovery_interval => 7)
     conn.start
   rescue Exception => e
     sleep 2
@@ -57,11 +46,9 @@ configure do
   end
 
   ch = conn.create_channel
-  STDERR.puts "Connection to RabbitMQ: #{configuration['amqp']['host']} succeded"
+  STDERR.puts "Connection to RabbitMQ: #{config(:amqp_host)} succeeded"
 
-  @exchange = ch.topic(configuration['amqp']['exchange'], :durable => true,
-                         :auto_delete => false)
-
+  @exchange = ch.topic(config(:amqp_exchange), :durable => true, :auto_delete => false)
   set :rabbit, @exchange
 end
 
@@ -107,7 +94,7 @@ def publish_event(event)
 end
 
 def verify_signature?(payload_body)
-  secret = configuration['mirror']['webhook_secret'];
+  secret = config(:github_webhook_secret);
   return true if secret.nil?
 
   given = request.env['HTTP_X_HUB_SIGNATURE']
