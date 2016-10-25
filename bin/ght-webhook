@@ -16,7 +16,6 @@ require 'thread'
 require 'ghtorrent/logging'
 
 include GHTorrent::Logging
-include GHTorrent::APIClient
 
 @@semaphore = Mutex.new
 def configuration
@@ -40,7 +39,7 @@ configure do
   # (literally) settings[x] at a time when the "settings" field is the Sinatra app.  By adding
   # [] to Sinatra, we can trick GHT and get the config values accessible.
   # TODO figure out Ruby closures to eliminate the global
-  $nested_settings = @settings
+  $nested_settings = configuration
   def settings.[](x)
     $nested_settings[x]
   end

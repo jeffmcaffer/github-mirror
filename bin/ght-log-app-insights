@@ -181,7 +181,6 @@ def process_log_line(line, number)
     return
   end
 
-  puts line
   $lineBuffer = [] if $error
   $lineBuffer.shift if $lineBuffer.length >= 2
   $lineBuffer << line
@@ -218,9 +217,11 @@ def process_log_line(line, number)
         parse_ght_webhook_line(msg)
       when 'ght_mirror_events'
         parse_ght_mirror_events_line(msg)
+      else
+        $tc.track_event 'Unhandled log line', :properties => { 'line' => line }
       end
   rescue Exception => e
-    puts "Error parsing ##{number}, Error: #{e.message}, Line: #{msg}"
+    warn "Error parsing ##{number}, Error: #{e.message}, Line: #{msg}"
   end
 end
 
@@ -252,7 +253,6 @@ if opts[:file].nil?
   ARGF.each do |line|
     # TODO not sure what this does but its is not working on unbunto 16.04 bash
     # next if line !~ /^[IDEW]/
-  puts line
     process_log_line(line, number += 1)
   end
 else
