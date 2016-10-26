@@ -73,7 +73,8 @@ Values in the config.yaml file set with the -c command are overridden.
   end
 
   def go
-    configs = ARGV.length == 0 ? [[config(:github_token), 1, config(:req_limit)]] : load_configs(ARGV[0])
+    # if no args given, use the current config
+    configs = ARGV.length == 0 ? [self.settings] : load_configs(ARGV[0])
 
     children = configs.map do |config|
       if not options[:inproc]
