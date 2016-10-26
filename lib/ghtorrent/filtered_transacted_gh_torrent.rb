@@ -22,6 +22,7 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
   private
 
   def include_org? (org)
+    org = org.downcase
     # if it has been a while, reload the orgs list to detect orgs being added/removed
     if Time.now.to_ms > @next_check_time
       @org_filter = load_orgs_file config(:mirror_orgs_file)
