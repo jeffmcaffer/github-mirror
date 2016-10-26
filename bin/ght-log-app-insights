@@ -186,7 +186,7 @@ def process_log_line(line, number, echo)
     puts "^^^ Unstructured LOG lines ^^^"
   end
   $lineBuffer.shift if $lineBuffer.length >= 2
-  $lineBuffer << line
+  $lineBuffer << "   " + line
   $error = false
   begin
     puts line if echo

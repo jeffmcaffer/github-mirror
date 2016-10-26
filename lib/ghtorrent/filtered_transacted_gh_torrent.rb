@@ -1,12 +1,10 @@
 require 'ghtorrent/transacted_gh_torrent'
 
 class FilteredTransactedGHTorrent < TransactedGHTorrent
-  attr_reader :org_filter
 
   def initialize(settings)
     super
     @org_filter = load_orgs_file(config(:mirror_orgs_file))
-    @next_check_time = 0
   end
 
   def ensure_repo(organization, repo, recursive = false)
@@ -24,10 +22,18 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
   private
 
   def include_org? (org)
+    # if it has been a while, reload the orgs list to detect orgs being added/removed
     if Time.now.to_ms > @next_check_time
-      load_orgs_file config(:mirror_orgs_file)
+      @org_filter = load_orgs_file config(:mirror_orgs_file)
     end
-    result = org_filter.include?(org)
+    result = @org_filter.include?(org)
+    # if we miss, reload the orgs list in case an org was just added
+    # TODO this may be a bit of overkill to actually reload. Perhaps a timestamp check?
+    unless result
+      @org_filter = load_orgs_file config(:mirror_orgs_file)
+      result = @org_filter.include?(org)
+    end
+
     warn "Organization #{org} excluded by filter" unless result
     result
   end
