@@ -9,15 +9,15 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
     @next_check_time = 0
   end
 
-  def ensure_repo(owner, repo, recursive = false)
-    super if include_org? owner
+  def ensure_repo(organization, repo, recursive = false)
+    super if include_org? organization
   end
 
   def ensure_org(organization, members = true)
-    super if include_org? owner
+    super if include_org? organization
   end
 
-  def ensure_repo_recursive(owner, repo)
+  def ensure_repo_recursive(organization, repo)
     super if include_org? organization
   end
 

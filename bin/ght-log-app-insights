@@ -166,7 +166,8 @@ def get_match(line, exp)
   return match.nil? ? nil : match.captures[0]
 end
 
-def process_log_line(line, number)
+def process_log_line(line, number, echo)
+  puts line if echo
   begin
     severity, time, progname, stage, msg =
       line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
@@ -234,6 +235,8 @@ Options:
 
   opt :key, "ApplicationInsights API key", :type => String,
     :short => 'k'
+  opt :echo, "Echo the stdin lines to stdout",
+    :short => 'e', :default => false
   opt :file, "Read from a file (for testing)", :type => String,
     :short => 'f'
 end
@@ -253,14 +256,13 @@ if opts[:file].nil?
   ARGF.each do |line|
     # TODO not sure what this does but its is not working on unbunto 16.04 bash
     # next if line !~ /^[IDEW]/
-    process_log_line(line, number += 1)
-    $tc.flush if number.modulo(5) == 0
+    process_log_line(line, number += 1, opts[:echo])
   end
 else
   puts "Reading from file #{opts[:file]}..."
   File.open(opts[:file], "r") do |f|
     f.each_line do |line|
-      process_log_line(line, number += 1)
+      process_log_line(line, number += 1, opts[:echo])
     end
   end
 end
