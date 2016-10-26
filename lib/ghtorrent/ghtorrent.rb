@@ -90,6 +90,8 @@ module GHTorrent
                        num_commits: -1, fork_all: false)
 
       currepo = ensure_repo(user, repo)
+      return if currepo.nil?
+
       unless currepo[:forked_from].nil? or fork_all
         r            = retrieve_repo(user, repo)
         return if r.nil?
@@ -616,6 +618,8 @@ module GHTorrent
     # Get details about the languages used in the repository
     def ensure_languages(owner, repo)
       currepo = ensure_repo(owner, repo)
+      return if currepo.nil?
+
       langs = retrieve_languages(owner, repo)
 
       if langs.nil? or langs.empty?
@@ -734,6 +738,7 @@ module GHTorrent
     def ensure_fork_point(owner, repo)
 
       fork = ensure_repo(owner, repo, false)
+      return if fork.nil?
 
       if fork[:forked_from].nil?
         warn "Repo #{owner}/#{repo} is not a fork"
