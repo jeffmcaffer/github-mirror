@@ -167,26 +167,29 @@ def get_match(line, exp)
 end
 
 def process_log_line(line, number, echo)
-  puts line if echo
   begin
     severity, time, progname, stage, msg =
       line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
   rescue StandardError => e
     if not $error
-      puts "LOGGING ERROR"
+      puts "vvv Unstructured LOG lines (precedingLines) vvv"
       puts $lineBuffer
-      $tc.track_event 'Logging error', :properties => { 'line' => line, 'precedingLines' => $lineBuffer.join }
+      $tc.track_event 'unstructured_log_line', :properties => { 'line' => line, 'precedingLines' => $lineBuffer.join }
     end
     $error = true
     puts "  Skip ##{number} : #{line}"
     return
   end
 
-  $lineBuffer = [] if $error
+  if $error
+    $lineBuffer = []
+    puts "^^^ Unstructured LOG lines ^^^"
+  end
   $lineBuffer.shift if $lineBuffer.length >= 2
   $lineBuffer << line
   $error = false
   begin
+    puts line if echo
     return {} if severity.downcase == 'debug'
     stage = stage.split(/\./)[0]
     data = {
@@ -219,7 +222,7 @@ def process_log_line(line, number, echo)
       when 'ght_mirror_events'
         parse_ght_mirror_events_line(msg)
       else
-        $tc.track_event 'Unhandled log line', :properties => { 'line' => line }
+        $tc.track_event 'unhandled_log_line', :properties => { 'line' => line }
       end
   rescue Exception => e
     warn "Error parsing ##{number}, Error: #{e.message}, Line: #{msg}"
