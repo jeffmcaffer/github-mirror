@@ -18,7 +18,7 @@ require 'ghtorrent/logging'
 include GHTorrent::Logging
 
 configure do
-  @@semaphore = Mutex.new
+  $semaphore = Mutex.new
   set :logging, false
 
   # Load and stash away the config and define a [] method to access it.  The "settings"
@@ -82,7 +82,7 @@ end
 def publish_event(event)
   # ensure there is only one thread publishing at a time.
   # TODO validate that the semaphore is actually needed
-  @@semaphore.synchronize do
+  $semaphore.synchronize do
     repo_fullname = event['repository']['full_name']
     key = "evt.#{event['type']}"
     id = event['id'].to_s

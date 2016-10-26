@@ -75,11 +75,6 @@ module GHTorrent
       end
     end
 
-    def get_mirror_class
-      klass = config(:mirror_class)
-      GHTorrent.const_get(klass)
-    end
-
     # Specify and parse top-level command line options.
     def process_options
       command = self

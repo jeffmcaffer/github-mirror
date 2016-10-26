@@ -24,7 +24,7 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
   private
 
   def include_org? (org)
-    if Time.now.to_ms > next_check_time
+    if Time.now.to_ms > @next_check_time
       load_orgs_file config(:mirror_orgs_file)
     end
     result = org_filter.include?(org)
@@ -40,7 +40,7 @@ class FilteredTransactedGHTorrent < TransactedGHTorrent
       x = x.strip
       result.add(x) unless x.empty?
     end
-    next_check_time = Time.now.to_ms + (5 * 60 * 1000)
+    @next_check_time = Time.now.to_ms + (5 * 60 * 1000)
     result
   end
 end

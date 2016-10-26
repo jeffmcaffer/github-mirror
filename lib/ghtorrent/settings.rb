@@ -114,6 +114,11 @@ module GHTorrent
       merge_config_values(config_file, {setting => new_value})
     end
 
+    def get_mirror_class
+      klass = config(:mirror_class)
+      GHTorrent.const_get(klass)
+    end
+
     def settings
       raise StandardError.new('Unimplemented')
     end
