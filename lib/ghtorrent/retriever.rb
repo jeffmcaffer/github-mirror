@@ -52,7 +52,10 @@ module GHTorrent
                   url = ghurl("legacy/user/search/#{CGI.escape(name)}")
                   api_request(url)
                  end
-
+# TODO remove this after we understand the bug
+if not byname.nil?
+  puts "======== Multivalue USER: #{url}, #{byname}" if byname.is_a?(Array)
+end
         if byname.nil? or byname['users'].nil? or byname['users'].empty?
           nil
         else
