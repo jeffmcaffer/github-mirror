@@ -161,6 +161,30 @@ def parse_ght_mirror_events_line(line)
   end
 end
 
+def parse_filtered_transacted_gh_torrent_line(line)
+  if line.start_with?("Organization")
+    # "Organization tysonn excluded by filter"
+    org = get_match(line, /.*Organization ([\s]+)/)
+    $tc.track_event 'filtered_org', :properties => { 'org' => org }
+  end
+end
+
+def parse_geolocation_line(line)
+  if line.start_with?("Successful")
+    # "Successful geolocation request. Location: no workspace, URL: http://nominatim.openstreetmap.org/search/no%20workspace?format=json&addressdetails=1&accept_language=en"
+    location, url = line.match(/.*Location: (.*), URL: (.*)$/).captures
+    $tc.track_event 'geolocation_success', :properties => { 'location' => location, 'url' => url }
+  elsif line.start_with?("Failed")
+    # "Failed geolocation request. URL: #{url}"
+    url = get_match(linen, /.*URL: (.*)$/)
+    $tc.track_event 'geolocation_failed', :properties => { 'url' => url }
+  elsif line.start_with?("Added")
+    # "Added location key 'india development center hyderabad' -> failed"
+    location, status = line.match(/.*key '([^']+)' -> (.*)$/).captures
+    $tc.track_event 'geolocation_added', :properties => { 'location' => location, 'status' => status }
+  end
+end
+
 def get_match(line, exp)
   match = line.match(exp)
   return match.nil? ? nil : match.captures[0]
@@ -221,6 +245,10 @@ def process_log_line(line, number, echo)
         parse_ght_webhook_line(msg)
       when 'ght_mirror_events'
         parse_ght_mirror_events_line(msg)
+      when 'filtered_transacted_gh_torrent'
+        parse_filtered_transacted_gh_torrent_line(msg)
+      when 'geolocation'
+        parse_geolocation_line(msg)
       else
         $tc.track_event 'unhandled_log_line', :properties => { 'line' => line }
       end
