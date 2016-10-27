@@ -29,7 +29,7 @@ Sequel.migration do
     puts("Creating table commits")
     create_table :commits do
       primary_key :id
-      String :sha, :size => 40
+      String :sha, :size => 40, :unique => true
       foreign_key :author_id, :users
       foreign_key :committer_id, :users
       foreign_key :project_id, :projects
