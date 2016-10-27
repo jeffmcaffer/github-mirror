@@ -145,8 +145,9 @@ module GHTorrent
     def api_request_raw(url, media_type = '')
 
       begin
+        # TODO remove this or make it parameterized.  Need to not flood GitHub
+        sleep(0.1)
         start_time = Time.now
-
         contents = do_request(url, media_type)
         total = Time.now.to_ms - start_time.to_ms
         info "Successful request. URL: #{url}, Remaining: #{@remaining}, Total: #{total} ms"
