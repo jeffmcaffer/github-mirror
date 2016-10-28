@@ -169,7 +169,7 @@ def parse_filtered_transacted_gh_torrent_line(line)
   end
 end
 
-def parse_geolocation_line(line)
+def parse_geolocator_line(line)
   if line.start_with?("Successful")
     # "Successful geolocation request. Location: no workspace, URL: http://nominatim.openstreetmap.org/search/no%20workspace?format=json&addressdetails=1&accept_language=en"
     location, url = line.match(/.*Location: (.*), URL: (.*)$/).captures
@@ -248,7 +248,7 @@ def process_log_line(line, number, echo)
       when 'filtered_transacted_gh_torrent'
         parse_filtered_transacted_gh_torrent_line(msg)
       when 'geolocation'
-        parse_geolocation_line(msg)
+        parse_geolocator_line(msg)
       else
         $tc.track_event 'unhandled_log_line', :properties => { 'line' => line }
       end
