@@ -156,7 +156,7 @@ end
 def parse_ght_mirror_events_line(line)
   if line.start_with?("Discovered")
     # "Discovered #{stored.size} events, Oldest: #{stored.last['id']}, Newest: #{stored.first['id']}"
-    count, oldest, newest = line.match(/.*Discovered ([\d]+) events, Oldest: ([\d]+), Newest: ([\d]+)$/).captures
+    count, oldest, newest = line.match(/.*Discovered #([\d]+) events, Oldest: ([\d]+), Newest: ([\d]+)$/).captures
     $tc.track_event 'discovered_events', :properties => { 'count' => count, 'oldest' => oldest, 'newest' => newest }
   end
 end
@@ -164,7 +164,7 @@ end
 def parse_filtered_transacted_gh_torrent_line(line)
   if line.start_with?("Organization")
     # "Organization tysonn excluded by filter"
-    org = get_match(line, /.*Organization ([\s]+)/)
+    org = get_match(line, /.*Organization ([\S]+)/)
     $tc.track_event 'filtered_org', :properties => { 'org' => org }
   end
 end
@@ -192,8 +192,7 @@ end
 
 def process_log_line(line, number, echo)
   begin
-    severity, time, progname, stage, msg =
-      line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
+    severity, time, progname, stage, msg = line.match(/([A-Z]+), (.+), (.+) -- ([^:]*?): (.*)/).captures
   rescue StandardError => e
     if not $error
       puts "vvv Unstructured LOG lines (precedingLines) vvv"
