@@ -147,9 +147,9 @@ def parse_ght_webhook_line(line)
     message = get_match(line, /.*queuing: (.*)$/)
     $tc.track_event 'webhook_queue_fail', :properties => { 'message' => message }
   elsif line.start_with?("Queuing:")
-    # "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
-    repo, event, type = line.match(/.*Queuing: ([^,]+), Event: ([^,]+), Type: (.*)$/).captures
-    $tc.track_event 'webhook_queuing', :properties => { 'repo' => repo, 'event' => event, 'type' => type }
+    # "Queuing: #{repo_fullname}, Type: #{event['type']}"
+    repo, type = line.match(/.*Queuing: ([^,]+), Type: (.*)$/).captures
+    $tc.track_event 'webhook_queuing', :properties => { 'repo' => repo, 'type' => type }
   end
 end
 

@@ -71,7 +71,10 @@ post '/' do
     halt 400, "Error parsing object #{request.body.read}"
   end
   begin
-    publish_event(event)
+    type = Env['HTTP_X_GITHUB_EVENT']
+    publish_event(event, type)
+    status 200
+    body ''
   rescue Exception => e
     warn "Error queuing: #{e.message}"
     halt 500, e
@@ -79,23 +82,15 @@ post '/' do
 end
 
 # Post the given event to all the relevant topics
-def publish_event(event)
+def publish_event(event, type)
   # ensure there is only one thread publishing at a time.
   # TODO validate that the semaphore is actually needed
   $semaphore.synchronize do
-    type = event['type']
-    return if type.nil?
-    key = "evt.#{type}"
-
-    id = event['id']
-    return if id.nil?
-    id = id.to_s
-
     repo = event['repository']
     return if repo.nil?
     repo_fullname = ['full_name']
 
-    info "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
+    info "Queuing: #{repo_fullname}, Type: #{event['type']}"
     # publish to the central queue and any additonal queues
     settings.rabbit.publish repo_fullname, :persistent => true, :routing_key => "evt.Event"
     settings.rabbit.publish id, :persistent => true, :routing_key => "bot.#{key}"
