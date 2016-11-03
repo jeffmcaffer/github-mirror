@@ -83,9 +83,18 @@ def publish_event(event)
   # ensure there is only one thread publishing at a time.
   # TODO validate that the semaphore is actually needed
   $semaphore.synchronize do
-    repo_fullname = event['repository']['full_name']
-    key = "evt.#{event['type']}"
-    id = event['id'].to_s
+    type = event['type']
+    return if type.nil?
+    key = "evt.#{type}"
+
+    id = event['id']
+    return if id.nil?
+    id = id.to_s
+
+    repo = event['repository']
+    return if repo.nil?
+    repo_fullname = ['full_name']
+
     info "Queuing: #{repo_fullname}, Event: #{id}, Type: #{event['type']}"
     # publish to the central queue and any additonal queues
     settings.rabbit.publish repo_fullname, :persistent => true, :routing_key => "evt.Event"
